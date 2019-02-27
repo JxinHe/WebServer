@@ -10,18 +10,18 @@ using namespace std;
 
 __thread EventLoop* t_loopInThisThread = 0;
 
-int createEventfd()
+int createEventfd()//创建一个文件描述符用于事件通知
 {
-    int evtfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-    if (evtfd < 0)
+    int evtfd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);//创建一个文件描述符用于事件通知，由内核通知用户空间应用程序事件
+    if (evtfd < 0)//NONBLOCK代表非阻塞，ClOEXEC，创建子进程时不继承父进程的文件描述符
     {
         LOG << "Failed in eventfd";
-        abort();
+        abort();//创建失败则终止程序
     }
-    return evtfd;
+    return evtfd;//否则返回该文件描述符
 }
 
-EventLoop::EventLoop()
+EventLoop::EventLoop() //事件循环对象
 :   looping_(false),
     poller_(new Epoll()),
     wakeupFd_(createEventfd()),
@@ -29,9 +29,9 @@ EventLoop::EventLoop()
     eventHandling_(false),
     callingPendingFunctors_(false),
     threadId_(CurrentThread::tid()),
-    pwakeupChannel_(new Channel(this, wakeupFd_))
+    pwakeupChannel_(new Channel(this, wakeupFd_))  //创建活跃的事件分发器分发刚刚活跃的文件描述符？？
 {
-    if (t_loopInThisThread)
+    if (t_loopInThisThread)  //是否在本线程中有其他线程
     {
         //LOG << "Another EventLoop " << t_loopInThisThread << " exists in this thread " << threadId_;
     }
@@ -40,10 +40,12 @@ EventLoop::EventLoop()
         t_loopInThisThread = this;
     }
     //pwakeupChannel_->setEvents(EPOLLIN | EPOLLET | EPOLLONESHOT);
-    pwakeupChannel_->setEvents(EPOLLIN | EPOLLET);
-    pwakeupChannel_->setReadHandler(bind(&EventLoop::handleRead, this));
-    pwakeupChannel_->setConnHandler(bind(&EventLoop::handleConn, this));
-    poller_->epoll_add(pwakeupChannel_, 0);
+    pwakeupChannel_->setEvents(EPOLLIN | EPOLLET); //设置可读和水平触发
+        //（epoll_event 结构体的events字段是表示感兴趣的事件和被触发的事件可能的取值为：EPOLLIN ：表示对应的文件描述符可以读）
+   
+    pwakeupChannel_->setReadHandler(bind(&EventLoop::handleRead, this));//绑定回调读函数
+    pwakeupChannel_->setConnHandler(bind(&EventLoop::handleConn, this));//绑定回调XX函数？？？？（应该是处理tcpConnection函数）
+    poller_->epoll_add(pwakeupChannel_, 0);//回调调用？？
 }
 
 void EventLoop::handleConn()
@@ -94,7 +96,7 @@ void EventLoop::runInLoop(Functor&& cb)
 void EventLoop::queueInLoop(Functor&& cb)
 {
     {
-        MutexLockGuard lock(mutex_);
+        MutexLockGuard lock(mutex_);//好像是跨线程调用，要加锁，忘了。。？？
         pendingFunctors_.emplace_back(std::move(cb));
     }
 
@@ -125,7 +127,7 @@ void EventLoop::loop()
     looping_ = false;
 }
 
-void EventLoop::doPendingFunctors()
+void EventLoop::doPendingFunctors()//？？什么作用
 {
     std::vector<Functor> functors;
     callingPendingFunctors_ = true;
@@ -140,7 +142,7 @@ void EventLoop::doPendingFunctors()
     callingPendingFunctors_ = false;
 }
 
-void EventLoop::quit()
+void EventLoop::quit()//退出？？
 {
     quit_ = true;
     if (!isInLoopThread())
