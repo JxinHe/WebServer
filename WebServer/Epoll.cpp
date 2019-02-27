@@ -109,7 +109,7 @@ std::vector<SP_Channel> Epoll::poll()
             return req_data;
     }
 }
-
+//删除超时的事件
 void Epoll::handleExpired()
 {
     timerManager_.handleExpiredEvent();
