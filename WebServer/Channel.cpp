@@ -29,16 +29,16 @@ Channel::~Channel()
     //close(fd_);
 }
 
-int Channel::getFd()
+int Channel::getFd()//得到fd
 {
     return fd_;
 }
-void Channel::setFd(int fd)
+void Channel::setFd(int fd)//设置fd
 {
     fd_ = fd;
 }
 
-void Channel::handleRead()
+void Channel::handleRead()//处理read回调
 {
     if (readHandler_)
     {
@@ -46,7 +46,7 @@ void Channel::handleRead()
     }
 }
 
-void Channel::handleWrite()
+void Channel::handleWrite()//处理write回调
 {
     if (writeHandler_)
     {
